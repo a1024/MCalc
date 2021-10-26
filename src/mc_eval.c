@@ -750,7 +750,11 @@ static void		r_ans		(Object *dst, Object *A, Object *B, Token *fn, CompileResult
 		obj_setscalar(dst, 0, 0);
 	}
 	else
+#ifdef ANS_IDX_ASCENDING
+		obj_assign(dst, &v_at(ans, idx));
+#else
 		obj_assign(dst, &v_at(ans, nanswers-1-idx));
+#endif
 }
 static void		r_roots		(Object *dst, Object *A, Object *B, Token *fn, CompileResult *ret){unimpl(fn, ret);}
 static void		c_roots		(Object *dst, Object *A, Object *B, Token *fn, CompileResult *ret){unimpl(fn, ret);}
@@ -1322,7 +1326,8 @@ void		compile_eval(Expression *ex, int f_idx, int *arg_idx, int nargs, int res_i
 	tt=functok->o.type;
 	if(tt>=T_SCALAR&&tt<=T_CMATRIX)
 		tt=T_CONTROL_START;
-	ASSERT(tt<opcount, "Invalid function token");
+	if(tt>=opcount)//
+		ASSERT(tt<opcount, "Invalid function token");
 	ovinfo=ovinfo_db+tt;
 	ASSERT(tt==ovinfo->type, "Corrupt overload info");
 	act_nargs=ovinfo->dst_is_arg+nargs;

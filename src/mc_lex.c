@@ -291,6 +291,9 @@ void		lex(const char *text, Expression *ex)//text IS a c vector
 			break;
 
 			//keywords
+		case 'a':
+				 if(match_kw(&v_at(text, k+1), keywords[T_ANS		]+1, &advance))	lex_push_tok(ex, T_ANS		, 0, 0, k, lineno, k-linestart, advance+1), k+=advance;
+			break;
 		case 'c':
 				 if(match_kw(&v_at(text, k+1), keywords[T_CLEAR		]+1, &advance))	lex_push_tok(ex, T_CLEAR	, 0, 0, k, lineno, k-linestart, advance+1), k+=advance;
 			else if(match_kw(&v_at(text, k+1), keywords[T_CROSS		]+1, &advance))	lex_push_tok(ex, T_CROSS	, 0, 0, k, lineno, k-linestart, advance+1), k+=advance;

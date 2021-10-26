@@ -206,6 +206,7 @@ int			main(int argc, const char **argv)//project started on 2021-01-21
 			ex_print(&expr);//
 #endif
 			comres=compile(exstr, &expr);
+
 			compile_print_errors(compileerrors);
 			if(comres==C_OK)
 				break;
@@ -225,7 +226,11 @@ int			main(int argc, const char **argv)//project started on 2021-01-21
 			anscount=v_size(&ans);
 			for(k=anscount0;k<anscount;++k)
 			{
-				printf("ans(%d) =\n", anscount-1-k);//answers are counted upwards: ans0 is the latest
+#ifdef ANS_IDX_ASCENDING
+				printf("ans(%d) =\n", k);
+#else
+				printf("ans(%d) =\n", anscount-1-k);//answers are counted upwards: ans0 is the latest, ans1 is the one before
+#endif
 				obj_print_reusable(ans+k);
 			}
 			anscount0=anscount;
@@ -235,11 +240,9 @@ int			main(int argc, const char **argv)//project started on 2021-01-21
 		
 		//cleanup
 		v_erase(&exstr, 0, v_size(&exstr)-1);//leave null terminator
-		exstr_size=v_size(&exstr);//
 		ex_clear(&expr);
 
 		get_exstr_interactive(&exstr, 0);
-		exstr_size=v_size(&exstr);//
 	}
 	//_getch();
 	return 0;

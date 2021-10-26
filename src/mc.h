@@ -25,6 +25,7 @@ char	_getche();
 
 //	#define		USE_SIMD
 
+	#define		ANS_IDX_ASCENDING
 	#define		ENABLE_ASSERT//don't comment this till release
 	#define		CVECTOR_CHECKED//use v_at() instead of [] for optional bound checking unless pointer is ofsetted, don't increment idx inside v_at()
 	#define		DEBUG_COMPILER//checks for reference & object consistency

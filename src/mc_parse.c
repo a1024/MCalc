@@ -776,7 +776,8 @@ CompileResult compile(const char *text, Expression *ex)
 			//	goto compile_returnpoint1;
 			}
 			
-			pobj=&v_at(ex->tokens, g_modified?g_result:start+(assignment<<1)).o;
+			pobj=&v_at(ex->tokens, g_result).o;
+			//pobj=&v_at(ex->tokens, g_modified?g_result:start+(assignment<<1)).o;
 			//pobj=&v_at(ex->tokens, start+(assignment<<1)).o;
 			//switch(pobj->type&-2)
 			//{

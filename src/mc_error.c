@@ -45,7 +45,7 @@ int crash(const char *file, int line, const char *expr, const char *msg, ...)
 		vprintf(msg, (char*)(&msg+1));
 		printf("\n");
 	}
-	printf("%s\n", expr);
+	printf("%s\t == false\n", expr);
 	_getch();
 	exit(1);
 	return 0;
