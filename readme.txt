@@ -56,3 +56,5 @@ Square matrices:
 Fraction objects:
   sample(F): s to z domain
   ldiv(F, S): long division of fraction F by S steps
+Utility:
+  cmd(w, h): set console buffer size (in characters)
