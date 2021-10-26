@@ -38,10 +38,19 @@ char	_getche()//Read 1 character with echo
 #else
 #include	<Windows.h>
 CONSOLE_SCREEN_BUFFER_INFO csbi;
-void get_console_size(short *w, short *h)
+void		get_console_size(short *w, short *h)
 {
 	GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
 	*w=csbi.dwSize.X;
 	*h=csbi.dwSize.Y;
+}
+int			set_console_buffer_size(short w, short h)
+{
+	COORD coords={w, h};
+	HANDLE handle=GetStdHandle(STD_OUTPUT_HANDLE);
+	int success=SetConsoleScreenBufferSize(handle, coords);
+	if(!success)
+		printf("Failed to resize console buffer: %d\n\n", GetLastError());
+	return success;
 }
 #endif

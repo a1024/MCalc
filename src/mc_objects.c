@@ -47,6 +47,11 @@ void		obj_assign(Object *dst, Object const *src)
 {
 	if(dst!=src)
 	{
+		if(src->type<0)
+		{
+			printf("obj_assign(): src->type < 0 (assigning an invalid object)\n");//
+			return;
+		}
 		dst->type=src->type;
 		dst->dx=src->dx;
 		dst->dy=src->dy;
@@ -54,6 +59,8 @@ void		obj_assign(Object *dst, Object const *src)
 			v_assign(&dst->str, &src->str);
 		else
 		{
+			//if(!src->r)//
+			//	printf("obj_assign(): src->r == 0\n");//
 			v_assign(&dst->r, &src->r);
 			if(src->i)
 				v_assign(&dst->i, &src->i);

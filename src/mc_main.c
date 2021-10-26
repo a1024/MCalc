@@ -117,6 +117,8 @@ void		print_help()
 	//	"Matrices & polynomials:\n"
 	//	"  dft/fft: Discrete Fourier Transform\n"
 	//	"  idft/ifft: Inverse Discrete Fourier Transform\n"
+		"Utility:\n"
+		"  cmd(w, h): set console buffer size (in characters)\n"
 		"\n"
 		);
 }

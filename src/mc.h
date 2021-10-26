@@ -41,7 +41,8 @@ extern const int	g_buf_size;
 extern char			g_buf[G_BUF_SIZE];
 
 //system
-void get_console_size(short *w, short *h);
+void		get_console_size(short *w, short *h);
+int			set_console_buffer_size(short w, short h);
 
 //math
 extern const double pi, euler;
@@ -172,8 +173,9 @@ typedef enum//TokenType v5
 	T_CROSS,//row vectors
 	T_IDEN, T_REF, T_RREF, T_DET, T_INV, T_DIAG, T_LU, T_TRACE,//matrices
 	T_DFT, T_FFT_UNUSED, T_IDFT, T_IFFT_UNUSED,//matrices & polynomials
+	T_CMD,
 
-		T_FEND,
+		T_FEND,//MUST BE ODD
 	
 	//operators
 	T_TRANSPOSE,
@@ -202,6 +204,8 @@ typedef enum//TokenType v5
 
 	//constant keywords
 	T_IMAG, T_IMAG_UNUSED, T_EULER, T_PI, T_INF, T_NAN,
+
+	T_ODDITY_PLACEHOLDER,
 
 	//additional tokens
 	T_ID,//identifier: token->o.sdata

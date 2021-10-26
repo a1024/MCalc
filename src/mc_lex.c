@@ -31,6 +31,7 @@ const char	*keywords[]=//TokenType v5
 	"cross",
 	"I", "ref", "rref", "det", "inv", "diag", "lu", "tr",//no variables called e, i, j, o
 	"dft", "idft", "fft", "ifft",
+	"cmd",
 		0,
 	
 	"\'",
@@ -296,6 +297,7 @@ void		lex(const char *text, Expression *ex)//text IS a c vector
 			break;
 		case 'c':
 				 if(match_kw(&v_at(text, k+1), keywords[T_CLEAR		]+1, &advance))	lex_push_tok(ex, T_CLEAR	, 0, 0, k, lineno, k-linestart, advance+1), k+=advance;
+			else if(match_kw(&v_at(text, k+1), keywords[T_CMD		]+1, &advance))	lex_push_tok(ex, T_CMD		, 0, 0, k, lineno, k-linestart, advance+1), k+=advance;
 			else if(match_kw(&v_at(text, k+1), keywords[T_CROSS		]+1, &advance))	lex_push_tok(ex, T_CROSS	, 0, 0, k, lineno, k-linestart, advance+1), k+=advance;
 			break;
 		case 'd':

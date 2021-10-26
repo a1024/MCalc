@@ -1071,6 +1071,12 @@ static void		r_mulpolsubs(Object *dst, Object *A, Object *B, Token *fn, CompileR
 	v_destroy(&cvec);
 }
 static void		c_mulpolsubs(Object *dst, Object *A, Object *B, Token *fn, CompileResult *ret){unimpl(fn, ret);}
+static void		r_cmd		(Object *dst, Object *A, Object *B, Token *fn, CompileResult *ret)
+{
+	int w=extract_int(A, fn), h=extract_int(B, fn);
+	v_resize(&dst->r, 1, 0);
+	v_at(dst->r, 0)=set_console_buffer_size(w, h);
+}
 typedef enum//only RC args are promoted
 {
 	A_ABSENT,
@@ -1101,6 +1107,8 @@ typedef struct
 } OpArgInfo;
 static OpOverload
 	ov_ans[]={{A_SCALAR_REAL_INT, A_ABSENT, r_ans, 0}},
+	ov_cmd[]={{A_SCALAR_REAL_INT, A_SCALAR_REAL_INT, r_cmd, 0}},
+
 	ov_roots[]={{A_POLY_RC, A_ABSENT, r_roots, c_roots}},
 	ov_ldiv[]={{A_FRAC_RC, A_ABSENT, r_ldiv_def, c_ldiv_def}, {A_FRAC_RC, A_SCALAR_REAL_INT, r_ldiv, c_ldiv}},
 	ov_sample[]={{A_FRAC_RC, A_ABSENT, r_sample, c_sample}},
@@ -1247,6 +1255,7 @@ static OpArgInfo ovinfo_db[]=
 	{T_FFT_UNUSED, 0, SIZEOF(ov_dft), ov_dft},
 	{T_IDFT, 0, SIZEOF(ov_idft), ov_idft},
 	{T_IFFT_UNUSED, 0, SIZEOF(ov_idft), ov_dft},
+	{T_CMD, 0, SIZEOF(ov_cmd), ov_cmd},
 	{T_FEND},
 
 	{T_TRANSPOSE, 0, SIZEOF(ov_transpose), ov_transpose},
