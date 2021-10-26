@@ -838,14 +838,14 @@ static void		r_lu		(Object *dst, Object *A, Object *B, Token *fn, CompileResult 
 static void		c_lu		(Object *dst, Object *A, Object *B, Token *fn, CompileResult *ret){unimpl(fn, ret);}
 static void		r_trace		(Object *dst, Object *A, Object *B, Token *fn, CompileResult *ret)
 {
-	int k, dxplus1=A->dx;
+	int k, dxplus1=A->dx+1;
 
 	dst->type=T_SCALAR;
 	dst->dx=dst->dy=1;
 	v_resize(&dst->r, 1, 0);
 
 	v_at(dst->r, 0)=0;
-	for(k=1;k<A->dx;++k)
+	for(k=0;k<A->dx;++k)
 		v_at(dst->r, 0)+=v_at(A->r, dxplus1*k);
 }
 static void		c_trace		(Object *dst, Object *A, Object *B, Token *fn, CompileResult *ret){unimpl(fn, ret);}
