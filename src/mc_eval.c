@@ -21,7 +21,8 @@
 #include	<stdlib.h>
 #include	<string.h>
 static const char file[]=__FILE__;
-int			result=0;//result can be anywhere between start & end, relocating token requires modifying metadata
+int			g_result=0,//result index can be anywhere between start & end, relocating token requires modifying metadata
+			g_modified=0;//last operation did something (eg: evaluating a single scalar does nothing)
 
 //TODO: print pretty
 #if 0
@@ -1270,6 +1271,8 @@ static OpArgInfo ovinfo_db[]=
 const int	opcount=SIZEOF(ovinfo_db);
 int			compare_arg(Object const *obj, ArgType argtype)
 {
+	if(!obj)
+		return argtype==A_ABSENT;
 	switch(argtype)
 	{
 	case A_ABSENT:
@@ -1305,7 +1308,7 @@ void		compile_eval(Expression *ex, int f_idx, int *arg_idx, int nargs, int res_i
 	Token *functok;
 	TokenType tt;
 	OpArgInfo *ovinfo;
-	OpOverload *overload;
+	OpOverload *overload=0;
 	int act_args[2], act_nargs, nobj, comp, k;
 
 	//if(!A.r)
@@ -1353,7 +1356,8 @@ void		compile_eval(Expression *ex, int f_idx, int *arg_idx, int nargs, int res_i
 	for(k=0;k<ovinfo->ovcount;++k)
 	{
 		overload=ovinfo->ov+k;
-		if(compare_arg(obj1, overload->a1)&&(act_nargs==1||compare_arg(obj2, overload->a2)))
+		if(compare_arg(obj1, overload->a1)&&compare_arg(obj2, overload->a2))
+		//if(compare_arg(obj1, overload->a1)&&(act_nargs==1||compare_arg(obj2, overload->a2)))//X  '-1;' CRASH
 			break;
 	}
 	if(k==ovinfo->ovcount)
@@ -1409,5 +1413,6 @@ void		compile_eval(Expression *ex, int f_idx, int *arg_idx, int nargs, int res_i
 		}
 		overload->r_func(obj1, &A, &B, functok, ret);
 	}
-	result=res_idx;
+	g_result=res_idx;
+	g_modified=1;
 }

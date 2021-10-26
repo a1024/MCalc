@@ -1,4 +1,4 @@
-//mc_math.h - Memory operations & C vector
+//mc_memory.h - Memory operations & C vector
 //Copyright (C) 2021  Ayman Wagih Mohsen
 //
 //This program is free software: you can redistribute it and/or modify
@@ -248,7 +248,6 @@ CVecHeader*			v_getptr		(void *pv)
 CVecHeader const*	v_getptr_const	(const void *pv)
 {
 	CVecHeader const *ph=*(CVecHeader const**)pv;
-	ASSERT(ph, "v_getptr_const: NULL pointer\n");
 	if(ph)
 	{
 #ifdef DEBUG_CVECTOR
@@ -259,6 +258,7 @@ CVecHeader const*	v_getptr_const	(const void *pv)
 #ifdef DEBUG_CVECTOR
 	printf("[%p] = NULL\n", pv);
 #endif
+	ASSERT(ph, "v_getptr_const: NULL pointer\n");
 	return 0;
 }
 #ifdef DEBUG_CVECTOR

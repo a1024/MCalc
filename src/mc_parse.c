@@ -14,7 +14,7 @@
 //You should have received a copy of the GNU General Public License
 //along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//compiler	actually an interpreter
+//interpreter
 #include	"mc_internal.h"
 #include	<stdio.h>
 #include	<string.h>//memset
@@ -188,9 +188,10 @@ void		compile_flat(Expression *ex, int start, int end, CompileResult *ret)
 	char lprec, rprec;
 	char go_left, go_right;
 	char lbin, rbin;
-	int args[2];
+	int args[2]={-1, -1};
 	TokenType *tt;
-
+	
+	g_modified=0;
 	//check operators & set type: dx = 'b', '<' or '>'
 	for(lk=start;lk<end;++lk)//everything before any anchors is on left
 	{
@@ -276,7 +277,6 @@ void		compile_flat(Expression *ex, int start, int end, CompileResult *ret)
 					break;
 			}
 		}
-		//	break;
 compile_flat_search:
 		for(lk=kn-1;lk>=start;--lk)//find left operator/anchor
 			if(ex->tokens[lk].o.type>0)
@@ -396,6 +396,7 @@ void		compile_expr(Expression *ex, int start, int end, CompileResult *ret)
 		parlevel=0, parlevel_max=0, parlevel_peak=0, callevel;
 	TokenType toktype, *tt;
 	int *argloc=0, nargs, argstart;
+	g_modified=0;
 	V_CONSTRUCT(int, argloc, 0, 0, 0);
 	for(;;)//level loop
 	{
@@ -444,7 +445,10 @@ void		compile_expr(Expression *ex, int start, int end, CompileResult *ret)
 					compile_flat(ex, argstart, k, ret);
 					if(k<lend)
 						*tt=-*tt;//clear comma
-					v_push_back(&argloc, &argstart);
+					if(g_modified)
+						v_push_back(&argloc, &g_result);
+					else
+						v_push_back(&argloc, &argstart);
 					if(k==lend)
 						break;
 					argstart=k+1;
@@ -669,8 +673,10 @@ CompileResult compile(const char *text, Expression *ex)
 				if(start<k)
 				{
 					compile_expr(ex, start, k, &ret);
-					pobj=&v_at(ex->tokens, start).o;
+					pobj=&v_at(ex->tokens, g_modified?g_result:start).o;
 					tt=&pobj->type, *tt=-*tt;//clear elem token
+					if(!pobj->r)
+						ASSERT(pobj->r, "Result index points at a non-object");//
 					re=v_at(pobj->r, 0);
 					if(pobj->type==T_CSCALAR)
 						im=v_at(pobj->i, 0);
@@ -680,16 +686,25 @@ CompileResult compile(const char *text, Expression *ex)
 				else
 					re=im=0;
 				v_push_back(&obj.r, &re);//add to the object
-				if(im)
+
+				if(obj.type&1&&obj.i)
+					v_push_back(&obj.i, &im);
+				else if(im)//upgrade to complex
 				{
-					if(obj.type&1&&obj.i)
-						v_push_back(&obj.i, &im);
-					else
-					{
-						++obj.type;
-						V_CONSTRUCT(double, obj.i, 1, &im, 0);
-					}
+					++obj.type;
+					V_CONSTRUCT(double, obj.i, v_size(&obj.r), 0, 0);
+					v_at(obj.i, v_size(&obj.r)-1)=im;
 				}
+				//if(im)
+				//{
+				//	if(obj.type&1&&obj.i)
+				//		v_push_back(&obj.i, &im);
+				//	else
+				//	{
+				//		++obj.type;
+				//		V_CONSTRUCT(double, obj.i, 1, &im, 0);
+				//	}
+				//}
 
 				tt=&v_at(ex->tokens, k).o.type, *tt=-*tt;//clear control token
 				if(token==T_POLEND||token==T_MATEND)
@@ -728,7 +743,8 @@ CompileResult compile(const char *text, Expression *ex)
 
 			pobj=&v_at(ex->tokens, objstart).o;
 			obj_assign(pobj, &obj);
-			v_push_back(&ex->idx_data, &objstart);
+			v_push_back(&ex->idx_data, &objstart);//small memory leak
+			g_result=objstart;
 			//v_at(ex->tokens, objstart).o.type=obj.type;
 			//v_at(le->tokens, objstart).b=v_size(&ex->data);
 			//v_push_back(&ex->data, &obj);//push object to ex
@@ -760,7 +776,7 @@ CompileResult compile(const char *text, Expression *ex)
 			//	goto compile_returnpoint1;
 			}
 			
-			pobj=&v_at(ex->tokens, result).o;
+			pobj=&v_at(ex->tokens, g_modified?g_result:start+(assignment<<1)).o;
 			//pobj=&v_at(ex->tokens, start+(assignment<<1)).o;
 			//switch(pobj->type&-2)
 			//{

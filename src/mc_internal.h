@@ -17,7 +17,8 @@
 #ifndef MC_INTERNAL_H
 #define MC_INTERNAL_H
 #include	"mc.h"
-extern int	result;
+extern int	g_result,//token index
+			g_modified;
 
 //objects
 int			obj_check(Object const *obj);
