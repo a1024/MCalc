@@ -382,7 +382,7 @@ void		impl_tensor(Object *dst, Object *A, Object *B)
 			coeff=v_at(A->r, A->dx*ky+kx);
 			for(ky2=0;ky2<B->dy;++ky2)
 				for(kx2=0;kx2<B->dx;++kx2)
-					v_at(m, dx*ky*ky2+kx*kx2)=coeff*v_at(B->r, B->dx*ky2+kx2);
+					v_at(m, dx*(B->dy*ky+ky2)+B->dx*kx+kx2)=coeff*v_at(B->r, B->dx*ky2+kx2);
 		}
 	}
 	dst->type=T_MATRIX;
