@@ -675,7 +675,7 @@ CompileResult compile(const char *text, Expression *ex)
 					compile_expr(ex, start, k, &ret);
 					pobj=&v_at(ex->tokens, g_modified?g_result:start).o;
 					tt=&pobj->type, *tt=-*tt;//clear elem token
-					if(!pobj->r)
+					if(!pobj->r)//
 						ASSERT(pobj->r, "Result index points at a non-object");//
 					re=v_at(pobj->r, 0);
 					if(pobj->type==T_CSCALAR)

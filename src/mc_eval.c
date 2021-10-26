@@ -170,6 +170,19 @@ void		print_matrix	(Object const *data)
 }
 #endif
 
+void		print_matrix_debug(double *buf, int w, int h)
+{
+	int kx, ky;
+
+	printf("\n");
+	for(ky=0;ky<h;++ky)
+	{
+		for(kx=0;kx<w;++kx)
+			printf("%4g ", buf[w*ky+kx]);
+		printf("\n");
+	}
+	printf("\n");
+}
 static int	check_e	(Object const *obj1, Object const *obj2, Token *fn, CompileResult *ret)//checks if objects have same dimensions
 {
 	if(obj1->dx!=obj2->dx||obj1->dy!=obj2->dy)
@@ -329,16 +342,21 @@ void		impl_det(Object *dst, Object *mat)
 void		impl_matinv(double *m, short dx, short dy)//resize m to (dy * 2dx),		dx==dy always
 {
 	int k, size=dx*dy;
+			//print_matrix_debug(m, dx<<1, dy);//
 	for(k=size-dx;k>=0;k-=dx)//expand M into [M, 0]
 	{
 		memcpy(m+(k<<1), m+k, dx*sizeof(double));
 		memset(m+(k<<1)+dx, 0, dx*sizeof(double));
 	}
+			//print_matrix_debug(m, dx<<1, dy);//
 	for(k=0;k<dx;++k)//add identity: [M, I]
 		m[(dx<<1)*k+dx+k]=1;
+			//print_matrix_debug(m, dx<<1, dy);//
 	impl_rref(m, dx<<1, dy);//[I, M^-1]
+			//print_matrix_debug(m, dx<<1, dy);//
 	for(k=0;k<size;k+=dx)//pack M^-1
-		memcpy(m+k, m+(k<<1), dx*sizeof(double));
+		memcpy(m+k, m+(k<<1)+dx, dx*sizeof(double));
+			//print_matrix_debug(m, dx<<1, dy);//
 }
 void		impl_matmul(double *dst, const double *A, const double *B, int h1, int w1h2, int w2)
 {

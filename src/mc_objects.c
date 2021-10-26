@@ -306,10 +306,10 @@ void		print_matrix_reusable(double *r, double *i, int dx, int dy)
 	{
 		for(ky=0, idx=0;ky<dy;++ky)
 		{
-			printf("\t");
+			//printf("\t");
 			for(kx=0;kx<dx;++kx, ++idx)
 			{
-				printf("%g", r[idx]);
+				printf("%4g", r[idx]);//TODO: https://stackoverflow.com/questions/53738961/printf-how-to-align-numbers-on-decimal-point
 				if(kx+1<dx)
 					printf(", ");
 			}
