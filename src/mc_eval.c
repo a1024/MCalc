@@ -367,6 +367,7 @@ void		impl_matmul(double *dst, const double *A, const double *B, int h1, int w1h
 		for(kx=0;kx<w2;++kx)
 		{
 			C=dst+w2*ky+kx;
+			*C=0;
 			for(kv=0;kv<w1h2;++kv)
 				*C+=A[w1h2*ky+kv]*B[w2*kv+kx];
 		}
@@ -941,8 +942,14 @@ static void		r_sub_ew_ms	(Object *dst, Object *A, Object *B, Token *fn, CompileR
 static void		c_sub_ew_ms	(Object *dst, Object *A, Object *B, Token *fn, CompileResult *ret){unimpl(fn, ret);}
 static void		r_mul_m		(Object *dst, Object *A, Object *B, Token *fn, CompileResult *ret)
 {
+	int res_size=B->dx*A->dy;
+
 	if(check_mm(A, B, fn, ret))
 		return;
+	dst->type=res_size==1?T_SCALAR:T_MATRIX;
+	dst->dx=B->dx;
+	dst->dy=A->dy;
+	v_resize(&dst->r, res_size, 0);
 	impl_matmul(dst->r, A->r, B->r, A->dy, A->dx, B->dx);
 }
 static void		c_mul_m		(Object *dst, Object *A, Object *B, Token *fn, CompileResult *ret){unimpl(fn, ret);}

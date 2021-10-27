@@ -37,6 +37,7 @@ char	_getche()//Read 1 character with echo
 }
 #else
 #include	<Windows.h>
+#include	<stdio.h>
 CONSOLE_SCREEN_BUFFER_INFO csbi;
 void		get_console_size(short *w, short *h)
 {
