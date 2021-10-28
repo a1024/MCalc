@@ -498,7 +498,12 @@ CompileResult compile(const char *text, Expression *ex)
 	int varname_len;
 
 	exstr=text;
-
+#ifdef DEBUG_MEMORY
+	printf(
+		"//\n"
+		"//Syntax check:\n"
+		"//\n");
+#endif
 	//syntax check
 #if 1
 	for(k=0;k<ntokens;++k)//check assignments, bracket integrity and object dimensions			no nested brackets, brackets & semicolon override parens, parens override commas
@@ -638,6 +643,12 @@ CompileResult compile(const char *text, Expression *ex)
 	}
 #endif
 	
+#ifdef DEBUG_MEMORY
+	printf(
+		"//\n"
+		"//Parse polynomials & matrices:\n"
+		"//\n");
+#endif
 	for(k=0;k<ntokens;)//parse polynomials & matrices
 	{
 		for(;k<ntokens;++k)//find a polynomial or a matrix
@@ -753,7 +764,13 @@ CompileResult compile(const char *text, Expression *ex)
 #ifdef PRINT_COMPILE_INTERNALS
 	ex_print(ex);
 #endif
-
+	
+#ifdef DEBUG_MEMORY
+	printf(
+		"//\n"
+		"//Compile object [assignment] expressions:\n"
+		"//\n");
+#endif
 	parlevel_out=0;
 	for(start=0, k=0;;++k)//compile object [assignment] expressions
 	{

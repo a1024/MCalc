@@ -58,39 +58,257 @@ void	mem_print_bin(const void *buf, int bytesize)
 	}
 }
 #ifdef DEBUG_MEMORY
-int syscall_count=0;
-void* d_alloc	(const char *file, int line, unsigned long bytesize)
+#define	POINTERS_MAX	0x10000
+typedef enum
+{
+	POINTER_FREED,
+	POINTER_RELOCATED,
+	POINTER_ACTIVE,
+} PointerStatus;
+const char* pointer_status2str(PointerStatus status)
+{
+	switch(status)
+	{
+#define	CASE(TYPE)	case TYPE:return #TYPE;
+		CASE(POINTER_FREED)
+		CASE(POINTER_RELOCATED)
+		CASE(POINTER_ACTIVE)
+#undef	CASE
+	}
+	return "<UNDEFINED>";
+}
+typedef struct
+{
+	union
+	{
+		const void *p;
+		const char *bytes;
+	};
+	size_t bytesize;
+	PointerStatus status;
+} Pointer;
+Pointer	pointers[POINTERS_MAX]={0};
+int		npointers=0;
+int		pointers_find(const void *p)
+{
+	int k;
+
+	for(k=0;k<npointers;++k)
+		if(pointers[k].p==p)
+			return k;
+	return npointers;
+	//return -1;
+}
+void	pointers_action_alloc(const void *p_new, size_t bytesize)
+{
+	Pointer *pointer;
+	int idx=pointers_find(p_new);
+
+	if(idx>=POINTERS_MAX)
+	{
+		printf("\n\nPOINTERS.ALLOC: Need to track over %d pointers\n\n", POINTERS_MAX);
+		_getch();
+		abort();
+	}
+
+	pointer=pointers+idx;
+	pointer->p=p_new;
+	pointer->bytesize=bytesize;
+	pointer->status=POINTER_ACTIVE;
+
+	npointers+=idx==npointers;
+}
+void	pointers_action_realloc(const void *p_old, const void *p_new, size_t bytesize_new)
+{
+	Pointer *pointer;
+	int idx1=pointers_find(p_old), idx2=pointers_find(p_new);
+	if(idx1==npointers)
+	{
+		printf("\n\nPOINTERS.REALLOC: p_old=0x%p not found, p_new=0x%p\n\n", p_old, p_new);
+		_getch();
+		abort();
+	}
+	if(p_new==p_old)
+		pointers[idx1].bytesize=bytesize_new;
+	else
+	{
+		if(idx2<npointers&&pointers[idx2].status==POINTER_ACTIVE)
+		{
+			printf("\n\nPOINTERS.REALLOC: p_old=0x%p, p_new=0x%p was active\n\n", p_old, p_new);
+			_getch();
+			abort();
+		}
+		if(!p_new)
+		{
+			printf("\n\nPOINTERS.REALLOC: p_old=0x%p, p_new=0x%p failed\n\n", p_old, p_new);
+			_getch();
+			abort();
+		}
+		pointer=pointers+idx1;
+		//pointer->bytesize=0;
+		pointer->status=POINTER_RELOCATED;
+
+		pointer=pointers+idx2;
+		pointer->p=p_new;
+		pointer->bytesize=bytesize_new;
+		pointer->status=POINTER_ACTIVE;
+
+		npointers+=idx2==npointers;
+	}
+}
+int		pointers_action_free(const void *p_old)
+{
+	int idx=pointers_find(p_old);
+	if(idx==npointers)
+	{
+		printf("\n\nPOINTERS.FREE: p_old=0x%p not found\n\n", p_old);
+		return -1;
+		//_getch();
+		//abort();
+	}
+	if(pointers[idx].status!=POINTER_ACTIVE)
+	{
+		printf("\n\nPOINTERS.FREE: p_old=0x%p status=%s\n\n", p_old, pointer_status2str(pointers[idx].status));
+		return -1;
+		//_getch();
+		//abort();
+	}
+	//pointers[idx].bytesize=0;
+	pointers[idx].status=POINTER_FREED;
+	return 0;
+}
+void	pointers_action_access(const void *p)
+{
+	Pointer *pointer;
+	int k, found=0;
+	static int access_count=0;
+	
+	printf("\nPOINTERS.ACCESS: 0x%p\n", p);
+	for(k=0;k<npointers;++k)//find in range
+	{
+		pointer=pointers+k;
+		if((char*)p>=pointer->bytes&&(char*)p<pointer->bytes+pointer->bytesize)//found
+		{
+			found=1;
+			printf("\tp=0x%p, %d bytes status=%s\n", pointer->p, pointer->bytesize, pointer_status2str(pointer->status));
+			if(pointer->status!=POINTER_ACTIVE)
+				_getch();
+		}
+	}
+	if(!found)
+		printf("\tnot found\n", p);
+	++access_count;
+}
+#if 0
+void	pointers_add(void *p)
+{
+	if(npointers>=POINTERS_MAX)
+	{
+		printf("\n\nPOINTERS: Need to track over %d pointers\n\n", POINTERS_MAX);
+		_getch();
+		return;
+	}
+	pointers[npointers]=p;
+	++npointers;
+}
+void	pointers_remove(void *p)
+{
+	int idx=pointers_find(p);
+	if(idx==-1)
+	{
+		printf("\n\nPOINTERS.REMOVE: 0x%p not found\n\n", p);
+		_getch();
+		return;
+	}
+	memmove(pointers+idx, pointers+idx+1, (npointers-1-idx)*sizeof(void*));
+	--npointers;
+}
+void	pointers_replace(void *p_old, void *p_new)
+{
+	int idx=pointers_find(p_old), k;
+	if(idx==-1)
+	{
+		printf("\n\nPOINTERS.REPLACE: p_old=0x%p not found, p_new=0x%p\n\n", p_old, p_new);
+		_getch();
+		return;
+	}
+	pointers[idx]=p_new;
+}
+#endif
+
+int		syscall_count=0, emergency_flag=0;
+void*	d_alloc		(const char *file, int line, unsigned long bytesize)
 {
 	void *p;
 	++syscall_count;
 	printf("%s(%d): #%d malloc 16 + %ld", get_filename(file), line, syscall_count, bytesize-16);
 	p=malloc(bytesize);
-	printf(" -> %p\n", p);
+	printf(" -> 0x%p\n", p);
+
+	pointers_action_alloc(p, bytesize);
+	//pointers_add(p);//
+
 	return p;
 }
-void* d_realloc	(const char *file, int line, void *p, unsigned long bytesize)
+void*	d_realloc	(const char *file, int line, void *p, unsigned long bytesize)
 {
 	void *p2;
 	++syscall_count;
-	printf("%s(%d): #%d realloc 16 + %ld, %p", get_filename(file), line, syscall_count, bytesize-16, p);
+	printf("%s(%d): #%d realloc 16 + %ld, 0x%p", get_filename(file), line, syscall_count, bytesize-16, p);
 	p2=realloc(p, bytesize);
-	printf(" -> %p\n", p2);
+	printf(" -> 0x%p\n", p2);
+
+	pointers_action_realloc(p, p2, bytesize);
+	//pointers_replace(p, p2);//
+
 	if(p2)
 		return p2;
 	return p;
 }
-void d_free		(const char *file, int line, void *p)
+int		d_free		(const char *file, int line, void *p)
 {
+	static int *prev_p=0;//
+	int status=0;
+
 	++syscall_count;
-	printf("%s(%d): #%d free %p", get_filename(file), line, syscall_count, p);
+	printf("%s(%d): #%d free 0x%p", get_filename(file), line, syscall_count, p);
+	if(prev_p==p)//
+	{
+		printf("\n\nWarning: attempting to free 0x%p second time in a row.\n", prev_p);
+		_getch();
+	}
+
+	status=pointers_action_free(p);
+	if(status<0)
+	{
+		printf("Expecting a crash at free()\n");
+		_getch();
+	}
+	//	return status;
+	//pointers_remove(p);//
+
+	//if(syscall_count==245)//
+	//{
+	//	printf("CRASH marker1\n");
+	//	_getch();
+	//}
 	if(p)
 		free(p);
+	//if(syscall_count==245)//
+	//	printf("CRASH marker2\n");
+	prev_p=p;//
 	printf("\n");
+
+	return status;
 }
 void d_memcpy	(const char *file, int line, void *dst, const void *src, int bytesize)
 {
 	++syscall_count;
-	printf("%s(%d): #%d memcpy %p := %p, %d before:\n\t", get_filename(file), line, syscall_count, dst, src, bytesize);
+	printf("%s(%d): #%d memcpy 0x%p := 0x%p, %d before:\n\t", get_filename(file), line, syscall_count, dst, src, bytesize);
+
+	pointers_action_access(src);//
+	pointers_action_access(dst);//
+
 	mem_print(dst, bytesize);
 
 	memcpy(dst, src, bytesize);
@@ -98,10 +316,28 @@ void d_memcpy	(const char *file, int line, void *dst, const void *src, int bytes
 	printf("\t...after:\n\t");
 	mem_print(dst, bytesize);
 }
+void d_memmove	(const char *file, int line, void *dst, const void *src, int bytesize)
+{
+	++syscall_count;
+	printf("%s(%d): #%d memmove 0x%p := 0x%p, %d before:\n\t", get_filename(file), line, syscall_count, dst, src, bytesize);
+
+	pointers_action_access(src);//
+	pointers_action_access(dst);//
+
+	mem_print(dst, bytesize);
+
+	memmove(dst, src, bytesize);
+
+	printf("\t...after:\n\t");
+	mem_print(dst, bytesize);
+}
 void d_memset	(const char *file, int line, void *dst, int val, int bytesize)
 {
 	++syscall_count;
-	printf("%s(%d): #%d memset %p := %d, %d before:\n\t", get_filename(file), line, syscall_count, dst, val, bytesize);
+	printf("%s(%d): #%d memset 0x%p := %d, %d before:\n\t", get_filename(file), line, syscall_count, dst, val, bytesize);
+
+	pointers_action_access(dst);//
+
 	mem_print(dst, bytesize);
 
 	memset(dst, val, bytesize);
@@ -251,7 +487,7 @@ CVecHeader const*	v_getptr_const	(const void *pv)
 	if(ph)
 	{
 #ifdef DEBUG_CVECTOR
-	printf("v_getptr[%p] = %p\n", pv, ph);
+	printf("v_getptr[%p] = 0x%p\n", pv, ph);
 #endif
 		return ph-1;
 	}
@@ -284,7 +520,8 @@ void	v_print_payload_pre(CVecHeader const *h, const char *msg, ...)
 		printf("(%d) = ", h->count);
 		printf("%p...\n", h);
 	//	printf("%*s * (%h) %s(%d)...\n", h->type_size, type, h->esize, name, h->count);//ellipsis
-		ASSERT(strlen(name)==h->name_size, "Corrupt vector payload\n");
+		if(strlen(name)!=h->name_size)//
+			ASSERT(strlen(name)==h->name_size, "Corrupt vector payload\n");
 	}
 	else
 		printf("NULL...\n");
@@ -376,6 +613,9 @@ void	v_destroy(void *pv)
 	v_print_payload_pre(ph, "Destroying ");//
 	if(ph)
 	{
+#ifdef DEBUG_MEMORY
+		printf("v_destroy(): 0x%p, esize=%d, count=%d, payload=0x%p, data=0x%p\n", ph, ph->esize, ph->count, ph->payload, ph->data);
+#endif
 		if(ph->payload)
 			free(ph->payload);
 		free(ph);
@@ -413,6 +653,11 @@ void	v_erase(void *pv, int idx, int count)
 	int bytesize, bytepos, bytediff;
 	char *start;
 
+#ifdef DEBUG_MEMORY
+	if(emergency_flag)
+		printf("v_erase(idx=%d, rem=%d) - before: 0x%p, count=%d\n", idx, count, ph, ph->count);
+#endif
+
 	ASSERT(ph, "v_erase: NULL pointer\n");
 	bytesize=ph->count*ph->esize, bytepos=idx*ph->esize, bytediff=count*ph->esize;
 	v_print_payload_pre(ph, "Erasing %d at %d from ", count, idx);//
@@ -423,8 +668,13 @@ void	v_erase(void *pv, int idx, int count)
 	ASSERT(bytesize>=bytediff, "v_erase %d from %d-size vector, at %d", bytediff, bytesize, idx);
 	ph=(CVecHeader*)realloc(ph, sizeof(CVecHeader)+bytesize-bytediff);
 	ph->count-=count;
-	*(void**)pv=start;
+	*(void**)pv=ph+1;
 	v_print_payload_pre_nl(ph, "Done ");//
+
+#ifdef DEBUG_MEMORY
+	if(emergency_flag)
+		printf("v_erase() - after: 0x%p, count=%d\n", ph, ph->count);
+#endif
 }
 void	v_assign(void *pdst, const void *psrc)
 {
@@ -435,7 +685,7 @@ void	v_assign(void *pdst, const void *psrc)
 	hsrc=v_getptr_const(psrc);
 	ASSERT(hsrc, "v_assign: NULL pointer\n");
 	v_print_payload_pre(hsrc, "Assigning ");//
-	v_print_payload_pre(hdst, "To ");//
+	v_print_payload_pre(*(void**)pdst?v_getptr(pdst):0, "To ");//
 	bytesize=hsrc->count*hsrc->esize;
 	if(*(void**)pdst)
 	{
@@ -452,7 +702,7 @@ void	v_assign(void *pdst, const void *psrc)
 		memcpy(hdst, hsrc, sizeof(CVecHeader)+bytesize);//copy array
 
 #ifdef DEBUG_CVECTOR
-		payloadbytes=hsrc->ploc_size*sizeof(int)+hsrc->type_size+hsrc->name_size;
+		payloadbytes=hsrc->ploc_size*sizeof(int)+hsrc->type_size+hsrc->name_size+1;
 #else
 		payloadbytes=hsrc->ploc_size*sizeof(int);
 #endif
@@ -466,6 +716,11 @@ void	v_assign(void *pdst, const void *psrc)
 
 		*(CVecHeader**)pdst=hdst+1;
 	}
+#ifdef DEBUG_MEMORY
+	printf("v_assign():\n");
+	printf("\tsrc: 0x%p, esize=%d, count=%d, payload=0x%p, data=0x%p\n", hsrc, hsrc->esize, hsrc->count, hsrc->payload, hsrc->data);
+	printf("\tdst: 0x%p, esize=%d, count=%d, payload=0x%p, data=0x%p\n", hdst, hdst->esize, hdst->count, hdst->payload, hdst->data);
+#endif
 	v_print_payload_pre(hdst, "Done ");//
 }
 void	v_check(const char *file, int line, const void *pv, int idx)
@@ -473,7 +728,7 @@ void	v_check(const char *file, int line, const void *pv, int idx)
 	CVecHeader const* ph;
 	if(!pv)
 	{
-		printf("\nCRASH at %s(%d): pv=%p\n", get_filename(file), line, pv);
+		printf("\nCRASH at %s(%d): pv=0x%p\n", get_filename(file), line, pv);
 		exit(1);
 	}
 	ph=v_getptr_const(pv);
@@ -507,7 +762,12 @@ void	v_resize(void *pv, int count, const void *data)
 	int diff, bytesize, bytediff;
 
 	ASSERT(ph, "v_resize: NULL pointer\n");
-	diff=count-ph->count, bytesize, bytediff;
+	diff=count-ph->count;
+#ifdef DEBUG_MEMORY
+	printf("v_resize() - before:\n\told=0x%p, esize=%d, count=%d->%d,\n\tpayload=0x%p, data=0x%p\n", ph, ph->esize, ph->count, count, ph->payload, ph->data);
+	if(emergency_flag)
+		emergency_flag=emergency_flag;
+#endif
 #ifdef DEBUG_CVECTOR
 	v_print_payload_pre(ph, "Resizing by %d ", diff);//
 #endif
@@ -521,7 +781,12 @@ void	v_resize(void *pv, int count, const void *data)
 	}
 	else if(diff<0)
 		v_erase(pv, ph->count+diff, -diff);
-	diff=0;//
+#ifdef DEBUG_MEMORY
+	bytesize=(int)ph;
+	ph=v_getptr(pv);
+	printf("v_resize() - after:\n\t0x%p->0x%p, esize=%d, count=%d->%d (required: %d),\n\tpayload=0x%p, data=0x%p\n", (void*)bytesize, ph, ph->esize, ph->count-diff, ph->count, count, ph->payload, ph->data);
+#endif
+	//diff=0;//
 }
 void	v_fill(void *pv, const void *elem)
 {

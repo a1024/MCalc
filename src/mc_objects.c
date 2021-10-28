@@ -18,6 +18,7 @@
 #include	<stdio.h>
 #include	<string.h>
 #include	<math.h>
+#include	<conio.h>//DEBUG
 static const char file[]=__FILE__;
 int			obj_check(Object const *obj)//true on success
 {
@@ -45,6 +46,9 @@ int			obj_check(Object const *obj)//true on success
 }
 void		obj_assign(Object *dst, Object const *src)
 {
+//#ifdef DEBUG_MEMORY
+//	printf("obj_assign(): syscall_count=%d\n", syscall_count);
+//#endif
 	if(dst!=src)
 	{
 		if(src->type<0)
@@ -101,6 +105,9 @@ static int	deduce_count(TokenType type, unsigned short dx, unsigned short dy)
 }
 void		obj_assign_immediate(Object *dst, TokenType type, unsigned short dx, unsigned short dy, double *re, double *im)//NOT c vectors
 {
+//#ifdef DEBUG_MEMORY
+//	printf("obj_assign_immediate(): syscall_count=%d\n", syscall_count);
+//#endif
 	int count=deduce_count(type, dx, dy);
 	if(dst->type==T_ID)
 	{
@@ -126,6 +133,9 @@ void		obj_assign_immediate(Object *dst, TokenType type, unsigned short dx, unsig
 }
 void		obj_assign_cvec(Object *dst, TokenType type, unsigned short dx, unsigned short dy, double **pre, double **pim)//pre & pim ARE c vectors
 {
+//#ifdef DEBUG_MEMORY
+//	printf("obj_assign_cvec(): syscall_count=%d\n", syscall_count);
+//#endif
 	int count=deduce_count(type, dx, dy);
 	if(dst->type==T_ID)
 		v_destroy(&dst->str);
@@ -140,6 +150,9 @@ void		obj_assign_cvec(Object *dst, TokenType type, unsigned short dx, unsigned s
 }
 void		obj_setscalar(Object *obj, double re, double im)
 {
+//#ifdef DEBUG_MEMORY
+//	printf("obj_setscalar(): syscall_count=%d\n", syscall_count);
+//#endif
 	v_resize(&obj->r, 1, 0);
 	obj->r[0]=re;
 	if(im)
@@ -188,42 +201,66 @@ void		ex_construct(Expression *ex)
 void		ex_clear(Expression *ex)
 {
 	Object *obj;
-	int size=v_size(&ex->tokens), ndata=v_size(&ex->idx_data), nid=v_size(&ex->idx_id), k, toktype;
+	int size=v_size(&ex->tokens), ndata=v_size(&ex->idx_data), nid=v_size(&ex->idx_id), k;
+	TokenType type;
 
 	ASSERT(ex->tokens, "Expression \'tokens\' pointer is NULL.");
 	ASSERT(ex->idx_data, "Expression \'idx_data\' pointer is NULL.");
 	ASSERT(ex->idx_id, "Expression \'idx_id\' pointer is NULL.");
+
+#if 1
+#ifdef DEBUG_MEMORY
+	printf("Object list:\n");//
+	for(k=0;k<size;++k)//
+	{
+		obj=&ex->tokens[k].o;
+		type=abs(obj->type);
+		printf("Object %d: %s, dx=%d, dy=%d, str=r=0x%p, i=0x%p\n", k, tokentype2str(type), obj->dx, obj->dy, obj->r, obj->i);
+	}
+#endif
+
+	for(k=0;k<size;++k)
+	{
+		obj=&ex->tokens[k].o;
+		type=abs(obj->type);
+#ifdef DEBUG_MEMORY
+		printf("Freeing object %d: %s, dx=%d, dy=%d, str=r=0x%p, i=0x%p\n", k, tokentype2str(type), obj->dx, obj->dy, obj->r, obj->i);//
+#endif
+		if(type==T_ID)
+			v_destroy(&obj->str);
+		else if(type>=T_SCALAR&&type<=T_CMATRIX)
+		{
+			v_destroy(&obj->r);
+			if(type&1)
+				v_destroy(&obj->i);
+		}
+	}
+#endif
+#if 0
 	for(k=0;k<ndata;++k)//free objects
 	{
+		printf("Freeing data object %d\n", k);//
 		obj=&ex->tokens[ex->idx_data[k]].o;
-		toktype=abs(obj->type);
-		ASSERT(toktype>=T_SCALAR&&toktype<=T_CMATRIX, "Invalid metadata: idx_data[%d]=%d points at a non-object.", k, ex->idx_data[k]);
+		type=abs(obj->type);
+		ASSERT(type>=T_SCALAR&&type<=T_CMATRIX, "Invalid metadata: idx_data[%d]=%d points at a non-object.", k, ex->idx_data[k]);
 		v_destroy(&obj->r);
-		if(toktype&1)
+		if(type&1)
 		{
 			ASSERT(obj->i, "Invalid metadata: Expected imaginary component, but the pointer is NULL.");
 			v_destroy(&obj->i);
 		}
+		//_getch();//
 	}
 	for(k=0;k<nid;++k)//free identifiers
 	{
+		printf("Freeing id object %d\n", k);//
 		obj=&ex->tokens[ex->idx_id[k]].o;
-		toktype=abs(obj->type);
-		ASSERT(toktype==T_ID, "Invalid metadata: idx_id[%d]=%d points at a non-identifier.", k, ex->idx_id[k]);
+		type=abs(obj->type);
+		ASSERT(type==T_ID, "Invalid metadata: idx_id[%d]=%d points at a non-identifier.", k, ex->idx_id[k]);
 		v_destroy(&obj->str);
+		//_getch();//
 	}
-	//for(k=0;k<size;++k)
-	//{
-	//	obj=&ex->tokens[k].o;
-	//	if(obj->type==T_ID)
-	//		v_destroy(&obj->sdata);
-	//	else if(obj->type>=T_SCALAR&&obj->type<=T_CMATRIX)
-	//	{
-	//		v_destroy(&obj->r);
-	//		if(obj->type&1)
-	//			v_destroy(&obj->i);
-	//	}
-	//}
+#endif
 	v_clear(&ex->tokens);
 	v_clear(&ex->idx_data);
 	v_clear(&ex->idx_id);

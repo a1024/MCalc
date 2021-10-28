@@ -64,23 +64,30 @@ int			text_margin_size=0;
 const char*	tokentype2str(TokenType a)
 {
 	int ia=(int)a;
+	const char *result=0;
+
 	if(ia<0||a==T_CONTROL_START)
-		return "T_IGNORED";
-	if(ia<nkeys)
-		return keywords[ia];
-	switch(a)
+		result="T_IGNORED";
+	else if(ia<nkeys)
+		result=keywords[ia];
+	else
 	{
-//	case T_VAL:			return "T_VAL";
-	case T_ID:			return "T_ID";
-	case T_SCALAR:		return "T_SCALAR";
-	case T_CSCALAR:		return "T_CSCALAR";
-	case T_FRAC:		return "T_FRAC";
-	case T_CFRAC:		return "T_CFRAC";
-	case T_MATRIX:		return "T_MATRIX";
-	case T_CMATRIX:		return "T_CMATRIX";
-	case T_EQUATION:	return "T_EQUATION";
+		switch(a)
+		{
+	//	case T_VAL:			result="T_VAL";			break;
+		case T_ID:			result="T_ID";			break;
+		case T_SCALAR:		result="T_SCALAR";		break;
+		case T_CSCALAR:		result="T_CSCALAR";		break;
+		case T_FRAC:		result="T_FRAC";		break;
+		case T_CFRAC:		result="T_CFRAC";		break;
+		case T_MATRIX:		result="T_MATRIX";		break;
+		case T_CMATRIX:		result="T_CMATRIX";		break;
+		case T_EQUATION:	result="T_EQUATION";	break;
+		}
 	}
-	return "???";
+	sprintf_s(g_buf, g_buf_size, "(%d: %s )", a, result);
+	return g_buf;
+	//return "???";
 }
 
 

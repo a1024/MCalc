@@ -170,7 +170,7 @@ void		print_matrix	(Object const *data)
 }
 #endif
 
-void		print_matrix_debug(double *buf, int w, int h)
+void		print_matrix_debug(const double *buf, int w, int h)
 {
 	int kx, ky;
 
@@ -362,6 +362,14 @@ void		impl_matmul(double *dst, const double *A, const double *B, int h1, int w1h
 {
 	int kx, ky, kv;
 	double *C;
+#ifdef DEBUG_MEMORY
+	printf("impl_matmul():\n");
+	print_matrix_debug(dst, w2, h1);
+	printf("  =\n");
+	print_matrix_debug(A, w1h2, h1);
+	printf("  *\n");
+	print_matrix_debug(B, w2, w1h2);
+#endif
 	for(ky=0;ky<h1;++ky)
 	{
 		for(kx=0;kx<w2;++kx)
@@ -949,7 +957,16 @@ static void		r_mul_m		(Object *dst, Object *A, Object *B, Token *fn, CompileResu
 	dst->type=res_size==1?T_SCALAR:T_MATRIX;
 	dst->dx=B->dx;
 	dst->dy=A->dy;
+#ifdef DEBUG_MEMORY
+	printf("r_mul_m(): resizing dst to %d\n", res_size);
+	printf("\tdst.size = %d\n", v_size(&dst->r));
+	emergency_flag=1;
+#endif
 	v_resize(&dst->r, res_size, 0);
+#ifdef DEBUG_MEMORY
+	printf("\tdst.size = %d\n", v_size(&dst->r));
+	emergency_flag=0;
+#endif
 	impl_matmul(dst->r, A->r, B->r, A->dy, A->dx, B->dx);
 }
 static void		c_mul_m		(Object *dst, Object *A, Object *B, Token *fn, CompileResult *ret){unimpl(fn, ret);}

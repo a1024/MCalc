@@ -162,6 +162,7 @@ int			main(int argc, const char **argv)//project started on 2021-01-21
 	//swprintf_s(wbuf2, 1024, L"ASCII: %S\nWCHAR: %s\n", "LOL_1", L"LOL_2");
 	//swprintf_s(wbuf2, 1024, L"ASCII: %s\nWCHAR: %ls\n", "LOL_1", L"LOL_2");
 
+	set_console_buffer_size(80, 9001);
 	printf("MCALC%s\n\n", argc==2?"":"\t\tCtrl C to exit.");
 
 	print_help();//

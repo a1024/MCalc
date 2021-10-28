@@ -29,6 +29,7 @@ char	_getche();
 	#define		ENABLE_ASSERT//don't comment this till release
 	#define		CVECTOR_CHECKED//use v_at() instead of [] for optional bound checking unless pointer is ofsetted, don't increment idx inside v_at()
 	#define		DEBUG_COMPILER//checks for reference & object consistency
+
 //	#define		PRINT_COMPILE_INTERNALS	//normally disabled
 //	#define		DEBUG_CVECTOR			//normally disabled
 //	#define     DEBUG_MEMORY			//normally disabled
@@ -82,9 +83,10 @@ int crash(const char *file, int line, const char *expr, const char *msg, ...);
 
 
 #ifdef DEBUG_MEMORY
+extern int syscall_count, emergency_flag;
 void*   d_alloc		(const char *file, int line, unsigned long bytesize);
 void*   d_realloc	(const char *file, int line, void *p, unsigned long bytesize);
-void    d_free		(const char *file, int line, void *p);
+int	    d_free		(const char *file, int line, void *p);
 void	d_memcpy	(const char *file, int line, void *dst, const void *src, int bytesize);
 #endif
 
@@ -122,6 +124,7 @@ typedef struct
 		char *cpayload;
 		long long unused;//header should contain an 8 byte variable for padding, to contain doubles without DEBUG_CVECTOR (long double is useless?)
 	};
+	char data[];
 } CVecHeader;
 #ifdef DEBUG_CVECTOR
 #define	CVEC_DEBUG_ARGS	, const char *type, const char *name
